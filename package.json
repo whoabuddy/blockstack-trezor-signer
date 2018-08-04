@@ -1,0 +1,24 @@
+{
+  "name": "blockstack-trezor",
+  "version": "1.0.0",
+  "description": "Simple utility for ethereum trezor transactions",
+  "main": "index.js",
+  "scripts": {
+    "build": "rm -rf lib; babel src -d lib",
+    "start": "node lib/index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "babel-polyfill": "^6.26.0",
+    "blockstack": "^18.0.2",
+    "trezor.js": "^6.16.1"
+  },
+  "devDependencies": {
+    "babel-cli": "^6.26.0",
+  },
+  "engines": {
+    "node": ">=9"
+  }
+}
