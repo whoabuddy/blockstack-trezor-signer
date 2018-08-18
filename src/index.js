@@ -2,6 +2,7 @@ import { DeviceList } from 'trezor.js'
 import btc from 'bitcoinjs-lib'
 import readline from 'readline'
 import process from 'process'
+import { TrezorMultiSigner } from './TrezorMultiSigSigner'
 
 const bsk = require('blockstack')
 
@@ -17,6 +18,9 @@ const list = new DeviceList()
 const DO_CACHE_PASSPHRASE = true
 
 const payerPath = `m/44'/5757'/0'/0/0`
+const payerPath1 = `m/44'/5757'/0'/0/1`
+const payerPath2 = `m/44'/5757'/0'/0/2`
+const payerPath3 = `m/44'/5757'/0'/0/3`
 const ownerPath = `m/88'/1'/0'/0/0`
 
 const REGTEST_FUNDER = 'bb68eda988e768132bc6c7ca73a87fb9b0918e9a38d3618b74099be25f7cab7d01'
@@ -32,8 +36,10 @@ function doGetAddressInfo(device, hdpath) {
 
 function setRegtest (device) {
   bsk.config.network = bsk.network.defaults.LOCAL_REGTEST
-  return TrezorSigner.getAddressFrom(device, payerPath)
-    .then((address) => bsk.transactions.makeBitcoinSpend(address, REGTEST_FUNDER, 2500000))
+  // return TrezorSigner.getAddressFrom(device, payerPath)
+  //  .then((address) =>
+  const address = '2MumTuqZ5nzfZHEitAQ1B1GyEeRiGTuPPEb'
+  return bsk.transactions.makeBitcoinSpend(address, REGTEST_FUNDER, 2500000)
     .then((x) => bsk.config.network.broadcastTransaction(x))
     .then((txid) => {
       console.log(`Regtest set and funding broadcasted: ${txid}`)
@@ -41,7 +47,9 @@ function setRegtest (device) {
 }
 
 function doMakePreorder (device, name, destination) {
-  return TrezorSigner.createSigner(device, payerPath)
+  return TrezorMultiSigner.createSigner(device, payerPath1,
+                                        [payerPath1, payerPath2, payerPath3],
+                                        1)
     .then((txSigner) =>
       bsk.transactions.makePreorder(name, destination, txSigner)
           .then(rawTX => {
@@ -58,7 +66,9 @@ function doMakeRegister (device, name, destination) {
 $TTL 3600
 _http._tcp URI 10 1 "https://gaia.blockstacktest.org/hub/${destination}/profile.json"`
 
-  return TrezorSigner.createSigner(device, payerPath)
+  return TrezorMultiSigner.createSigner(device, payerPath1,
+                                        [payerPath1, payerPath2, payerPath3],
+                                        1)
     .then((txSigner) =>
       bsk.transactions.makeRegister(name, destination, txSigner, zonefile)
           .then(rawTX => {
@@ -90,6 +100,14 @@ function promptCompleter(line) {
   return [hits.length ? hits : completions, line]
 }
 
+function getMultiSigAddr (device) {
+  return TrezorMultiSigner.createSigner(device, payerPath1,
+                                        [payerPath1, payerPath2, payerPath3],
+                                        1)
+    .then(payerSigner => payerSigner.getAddress())
+    .then(address => { console.log(`ADDRESS: ${address}`) })
+}
+
 function startCommandLine(trezorSession, showCommands) {
   if (showCommands) {
     console.log('')
@@ -102,6 +120,7 @@ function startCommandLine(trezorSession, showCommands) {
     console.log('Commands supported: ')
     console.log('')
     console.log('set-reg-test')
+    console.log('get-addr-multi')
     console.log('make-register <name> <destination-address>')
     console.log('make-update <name> <zonefile>')
     console.log('get-addr <payer|owner>')
@@ -146,6 +165,13 @@ function startCommandLine(trezorSession, showCommands) {
           console.log('ERROR OCCURRED IN LAST COMMAND.')
         })
         .then(() => startCommandLine(trezorSession))
+    } else if (command[0] == 'get-addr-multi') {
+      return getMultiSigAddr(trezorSession)
+        .catch((err) => {
+          console.log(err)
+          console.log('ERROR OCCURRED IN LAST COMMAND.')
+        })
+        .then(() => startCommandLine(trezorSession))
     } else {
       return startCommandLine(trezorSession)
     }
@@ -180,7 +206,9 @@ list.on('connect', function (device) {
     console.log('')
   }
 
-  startCommandLine(device, true)
+//  startCommandLine(device, true)
+  setRegtest(device)
+    .then(() => doMakePreorder(device, 'aaron.id', 'miiprdeiQ72wpm4s5nfagmR2AzGqYfPmPT'))
 })
 
 // Note that this is a bit duplicate to device.on('disconnect')
@@ -241,6 +269,8 @@ function hiddenQuestion(query, callback) {
 }
 
 function passphraseCallback(callback) {
+  callback(null, '')
+  return
   if (DO_CACHE_PASSPHRASE && PASSPHRASE_CACHE !== false) {
     callback(null, PASSPHRASE_CACHE)
     return
