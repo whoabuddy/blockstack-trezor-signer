@@ -1,4 +1,3 @@
-import trezor from 'trezor.js'
 import btc from 'bitcoinjs-lib'
 
 const bsk = require('blockstack')
@@ -18,6 +17,17 @@ export class TrezorSigner {
       .then(address => new TrezorSigner(device, hdpath, address))
   }
 
+
+  static translateInput(input) {
+    const script_sig = input.script.length > 0 ? input.script.toString('hex') : null
+    return {
+      prev_index: input.index,
+      prev_hash: Buffer.from(input.hash).reverse().toString('hex'),
+      sequence: input.sequence,
+      script_sig
+    }
+  }
+
   static getAddressFrom(device, hdpath) {
     return device.waitForSessionAndRun((session) => {
       let hdPathArray = pathToPathArray(hdpath)
@@ -29,38 +39,53 @@ export class TrezorSigner {
     return Promise.resolve(this.address)
   }
 
+  prepareInputs(inputs, myIndex) {
+    return inputs
+      .map((input, inputIndex) => {
+        const translated = TrezorSigner.translateInput(input)
+        if (inputIndex === myIndex) {
+          translated.address_n = pathToPathArray(this.hdpath)
+        }
+        return translated
+      })
+  }
+
+  prepareOutputs(outputs) {
+    return outputs
+      .map( output => {
+        if (btc.script.toASM(output.script).startsWith('OP_RETURN')) {
+          const nullData = btc.script.decompile(output.script)[1]
+          return { op_return_data: nullData.toString('hex'),
+                   amount: 0,
+                   script_type: 'PAYTOOPRETURN' }
+        } else {
+          const address = bsk.config.network.coerceAddress(
+            btc.address.fromOutputScript(output.script))
+          return { address,
+                   amount: output.value,
+                   script_type: 'PAYTOADDRESS' }
+        }
+      })
+  }
+
   signTransaction(txB, signInputIndex) {
-    let info = { inputs: null, outputs: null }
+    return this.signTransactionSkeleton(txB.__tx, signInputIndex)
+      .then((resp) => {
+        const signedTxHex = resp.tx
+        // god of abstraction, forgive me, for I have transgressed
+        const signedTx = btc.Transaction.fromHex(signedTxHex)
+        const signedTxB = btc.TransactionBuilder.fromTransaction(signedTx)
+        txB.__inputs[signInputIndex] = signedTxB.__inputs[signInputIndex]
+      })
+  }
+
+  prepareTransactionInfo(tx, signInputIndex) {
     return Promise.resolve()
       .then(() => {
         // we need to do a _lot_ of garbage here.
-        // Step 1: make TxInfo object
-        const inputs = txB.__tx.ins
-              .map( (input, inputIndex) => {
-                const translated = translateInput(input)
-                if (inputIndex === signInputIndex) {
-                  translated.address_n = pathToPathArray(this.hdpath)
-                }
-                return translated
-              })
-        const outputs = txB.__tx.outs
-              .map( output => {
-                if (btc.script.toASM(output.script).startsWith('OP_RETURN')) {
-                  const nullData = btc.script.decompile(output.script)[1]
-                  return { op_return_data: nullData.toString('hex'),
-                           amount: 0,
-                           script_type: 'PAYTOOPRETURN' }
-                } else {
-                  const address = bsk.config.network.coerceAddress(
-                    btc.address.fromOutputScript(output.script))
-                  return { address,
-                           amount: output.value,
-                           script_type: 'PAYTOADDRESS' }
-                }
-              })
-
-        info.inputs = inputs
-        info.outputs = outputs
+        // Step 1: prepare inputs / outputs for trezor format
+        const inputs = this.prepareInputs(tx.ins, signInputIndex)
+        const outputs = this.prepareOutputs(tx.outs)
 
         // Step 2: now we need to fetch the referrant TXs
         const referrants = []
@@ -79,7 +104,7 @@ export class TrezorSigner {
                 version: transaction.version,
                 locktime: transaction.locktime,
                 hash: transaction.getId(),
-                inputs: transaction.ins.map(translateInput),
+                inputs: transaction.ins.map(TrezorSigner.translateInput),
                 bin_outputs: transaction.outs.map(output => {
                   return {
                     amount: output.value,
@@ -91,19 +116,20 @@ export class TrezorSigner {
             }))
 
         return Promise.all(referrantPromises)
+          .then((referrantTXs) => ({
+            inputs, outputs, referrants: referrantTXs
+          }))
       })
-      .then((referrants) => {
+  }
+
+  signTransactionSkeleton(tx, signInputIndex) {
+    return this.prepareTransactionInfo(tx, signInputIndex)
+      .then((txInfo) => {
         const coinName = getCoinName()
-        return this.device.waitForSessionAndRun((session) =>
-                                                session.signTx(info.inputs, info.outputs, referrants,
-                                                               coinName))
-          .then(resp => resp.message.serialized.serialized_tx)
-      })
-      .then((signedTxHex) => {
-        // god of abstraction, forgive me, for I have transgressed
-        const signedTx = btc.Transaction.fromHex(signedTxHex)
-        const signedTxB = btc.TransactionBuilder.fromTransaction(signedTx)
-        txB.__inputs[signInputIndex] = signedTxB.__inputs[signInputIndex]
+        return this.device.waitForSessionAndRun(
+          (session) =>
+            session.signTx(txInfo.inputs, txInfo.outputs, txInfo.referrants, coinName, tx.locktime))
+          .then(resp => ({tx: resp.message.serialized.serialized_tx}))
       })
   }
 
@@ -112,12 +138,3 @@ export class TrezorSigner {
   }
 }
 
-
-function translateInput(input) {
-  const script_sig = input.hash.length > 0 ? input.script.toString('hex') : null
-  return {
-    prev_index: input.index,
-    prev_hash: Buffer.from(input.hash).reverse().toString('hex'),
-    script_sig
-  }
-}
