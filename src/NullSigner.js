@@ -1,6 +1,3 @@
-import { config as bskConfig } from 'blockstack'
-import { ECPair } from 'bitcoinjs-lib'
-
 export class NullSigner {
 
   constructor(address) {

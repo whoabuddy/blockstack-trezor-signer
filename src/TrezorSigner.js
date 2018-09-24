@@ -1,4 +1,3 @@
-import trezor from 'trezor.js'
 import btc from 'bitcoinjs-lib'
 
 const bsk = require('blockstack')
