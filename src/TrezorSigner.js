@@ -1,4 +1,5 @@
 import btc from 'bitcoinjs-lib'
+import TrezorConnect from 'trezor-connect'
 
 const bsk = require('blockstack')
 
@@ -6,15 +7,14 @@ import { getTransaction, pathToPathArray, getCoinName } from './utils'
 
 export class TrezorSigner {
 
-  constructor(device, hdpath, address) {
+  constructor(hdpath, address) {
     this.address = address
     this.hdpath = hdpath
-    this.device = device
   }
 
-  static createSigner(device, hdpath) {
-    return TrezorSigner.getAddressFrom(device, hdpath)
-      .then(address => new TrezorSigner(device, hdpath, address))
+  static createSigner(hdpath) {
+    return TrezorSigner.getAddressFrom(hdpath)
+      .then(address => new TrezorSigner(hdpath, address))
   }
 
 
@@ -28,11 +28,31 @@ export class TrezorSigner {
     }
   }
 
-  static getAddressFrom(device, hdpath) {
-    return device.waitForSessionAndRun((session) => {
-      let hdPathArray = pathToPathArray(hdpath)
-      return session.getAddress(hdPathArray, getCoinName(), false)
-    }).then(response => response.message.address)
+  static getPublicKeys(paths) {
+    console.log('INPUT PATHS')
+    console.log(JSON.stringify(paths, undefined, 2))
+    return TrezorConnect.getPublicKey({
+      bundle: paths.map((path) => ({ path })) })
+      .then((response) => {
+        if (!response.success)
+          throw new Error('Failed to load addresses from Trezor')
+        const values = response.payload
+        console.log('OUTPUTS PATHS')
+        console.log(JSON.stringify(values, undefined, 2))
+        return paths.map((path) => {
+          return values.find((value) => `m/${value.serializedPath}` === path)
+            .xpub
+        })
+      })
+  }
+
+  static getAddressFrom(hdpath) {
+    return TrezorSigner.getPublicKeys([hdpath])
+      .then((xpubs) => {
+        const node = btc.bip32.fromBase58(xpubs[0])
+        const address = btc.payments.p2pkh({ pubkey: node.publicKey }).address
+        return bsk.config.network.coerceAddress(address)
+      })
   }
 
   getAddress() {
@@ -56,13 +76,13 @@ export class TrezorSigner {
         if (btc.script.toASM(output.script).startsWith('OP_RETURN')) {
           const nullData = btc.script.decompile(output.script)[1]
           return { op_return_data: nullData.toString('hex'),
-                   amount: 0,
+                   amount: '0',
                    script_type: 'PAYTOOPRETURN' }
         } else {
           const address = bsk.config.network.coerceAddress(
             btc.address.fromOutputScript(output.script))
           return { address,
-                   amount: output.value,
+                   amount: `${output.value}`,
                    script_type: 'PAYTOADDRESS' }
         }
       })
@@ -83,53 +103,26 @@ export class TrezorSigner {
     return Promise.resolve()
       .then(() => {
         // we need to do a _lot_ of garbage here.
-        // Step 1: prepare inputs / outputs for trezor format
+        // prepare inputs / outputs for trezor format
         const inputs = this.prepareInputs(tx.ins, signInputIndex)
         const outputs = this.prepareOutputs(tx.outs)
 
-        // Step 2: now we need to fetch the referrant TXs
-        const referrants = []
-        inputs.forEach( input => {
-          const txid = input.prev_hash
-          if (referrants.indexOf(txid) < 0) {
-            referrants.push(txid)
-          }
-        })
-
-        const referrantPromises = referrants.map(
-          hash => getTransaction(hash)
-            .then(rawTx => btc.Transaction.fromBuffer(rawTx))
-            .then(transaction => {
-              return {
-                version: transaction.version,
-                locktime: transaction.locktime,
-                hash: transaction.getId(),
-                inputs: transaction.ins.map(TrezorSigner.translateInput),
-                bin_outputs: transaction.outs.map(output => {
-                  return {
-                    amount: output.value,
-                    script_pubkey: output.script.toString('hex')
-                  }
-                }),
-                extra_data: null
-              }
-            }))
-
-        return Promise.all(referrantPromises)
-          .then((referrantTXs) => ({
-            inputs, outputs, referrants: referrantTXs
-          }))
+        return { inputs, outputs }
       })
   }
 
   signTransactionSkeleton(tx, signInputIndex) {
     return this.prepareTransactionInfo(tx, signInputIndex)
       .then((txInfo) => {
-        const coinName = getCoinName()
-        return this.device.waitForSessionAndRun(
-          (session) =>
-            session.signTx(txInfo.inputs, txInfo.outputs, txInfo.referrants, coinName, tx.locktime))
-          .then(resp => ({tx: resp.message.serialized.serialized_tx}))
+        const coin = getCoinName()
+        return TrezorConnect.signTransaction({ inputs: txInfo.inputs,
+                                               outputs: txInfo.outputs,
+                                               coin })
+          .then(resp => {
+            if (!resp.success)
+              throw new Error('Failed to sign Trezor transaction!')
+            return { tx: resp.payload.serializedTx }
+          })
       })
   }
 
