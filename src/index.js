@@ -8,8 +8,8 @@ import { pathToPathArray, getCoinName, trackTransaction } from './utils'
 import { TrezorSigner } from './TrezorSigner'
 import { NullSigner } from './NullSigner'
 
-//const TESTNET = 'testnet.blockstack.org'
-const TESTNET = '172.17.0.2'
+const TESTNET = 'testnet.blockstack.org'
+//const TESTNET = '172.17.0.2'
 const debug = true
 
 const payerPath = `m/44'/5757'/0'/0/0`

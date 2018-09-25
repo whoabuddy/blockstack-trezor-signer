@@ -5,6 +5,17 @@ const bsk = require('blockstack')
 
 import { getTransaction, pathToPathArray, getCoinName } from './utils'
 
+class MockKeyPair {
+  constructor(signature: Buffer, publicKey: Buffer) {
+    this.signature = signature
+    this.publicKey = publicKey
+  }
+
+  sign() {
+    return this.signature
+  }
+}
+
 export class TrezorSigner {
 
   constructor(hdpath, address) {
@@ -29,16 +40,12 @@ export class TrezorSigner {
   }
 
   static getPublicKeys(paths) {
-    console.log('INPUT PATHS')
-    console.log(JSON.stringify(paths, undefined, 2))
     return TrezorConnect.getPublicKey({
       bundle: paths.map((path) => ({ path })) })
       .then((response) => {
         if (!response.success)
           throw new Error('Failed to load addresses from Trezor')
         const values = response.payload
-        console.log('OUTPUTS PATHS')
-        console.log(JSON.stringify(values, undefined, 2))
         return paths.map((path) => {
           return values.find((value) => `m/${value.serializedPath}` === path)
             .xpub
@@ -59,7 +66,7 @@ export class TrezorSigner {
     return Promise.resolve(this.address)
   }
 
-  prepareInputs(inputs, myIndex) {
+  prepareInputs(inputs, myIndex, extra) {
     return inputs
       .map((input, inputIndex) => {
         const translated = TrezorSigner.translateInput(input)
@@ -99,20 +106,20 @@ export class TrezorSigner {
       })
   }
 
-  prepareTransactionInfo(tx, signInputIndex) {
+  prepareTransactionInfo(tx, signInputIndex, extra) {
     return Promise.resolve()
       .then(() => {
         // we need to do a _lot_ of garbage here.
         // prepare inputs / outputs for trezor format
-        const inputs = this.prepareInputs(tx.ins, signInputIndex)
+        const inputs = this.prepareInputs(tx.ins, signInputIndex, extra)
         const outputs = this.prepareOutputs(tx.outs)
 
         return { inputs, outputs }
       })
   }
 
-  signTransactionSkeleton(tx, signInputIndex) {
-    return this.prepareTransactionInfo(tx, signInputIndex)
+  signTransactionSkeleton(tx, signInputIndex, extra) {
+    return this.prepareTransactionInfo(tx, signInputIndex, extra)
       .then((txInfo) => {
         const coin = getCoinName()
         return TrezorConnect.signTransaction({ inputs: txInfo.inputs,
@@ -121,7 +128,7 @@ export class TrezorSigner {
           .then(resp => {
             if (!resp.success)
               throw new Error('Failed to sign Trezor transaction!')
-            return { tx: resp.payload.serializedTx }
+            return { tx: resp.payload.serializedTx, signatures: resp.payload.signatures }
           })
       })
   }

@@ -1,5 +1,6 @@
 import TrezorConnect from 'trezor-connect'
 import btc from 'bitcoinjs-lib'
+import crypto from 'crypto'
 
 const bsk = require('blockstack')
 
@@ -32,13 +33,13 @@ export class TrezorMultiSigner extends TrezorSigner {
       path, redeemScript, address))
   }
 
-  prepareInputs(inputs, myIndex) {
+  prepareInputs(inputs, myIndex, multisig) {
     return inputs
       .map((input, inputIndex) => {
         const translated = TrezorSigner.translateInput(input)
         if (inputIndex === myIndex) {
           translated.address_n = pathToPathArray(this.hdpath)
-          translated.multisig = this.multisig
+          translated.multisig = multisig
           translated.script_type = 'SPENDMULTISIG'
         }
         return translated
@@ -60,7 +61,15 @@ export class TrezorMultiSigner extends TrezorSigner {
       signatures = this.p2ms.pubkeys.map(() => '')
     }
 
-    const multisig = { pubkeys: this.p2ms.pubkeys,
+    const pubkeys = this.p2ms.pubkeys.map( // make fake xpubs?
+      (pubkey) => {
+        const chainCode = crypto.randomBytes(32)
+        const hdNode = btc.bip32.fromPublicKey(pubkey, chainCode)
+        hdNode.network = bsk.config.network.layer1
+        return { node: hdNode.toBase58() }
+      })
+
+    const multisig = { pubkeys,
                        m: this.p2ms.m,
                        signatures }
 
@@ -71,23 +80,6 @@ export class TrezorMultiSigner extends TrezorSigner {
         const signedTx = btc.Transaction.fromHex(signedTxHex)
         const signedTxB = btc.TransactionBuilder.fromTransaction(signedTx)
         txB.__inputs[signInputIndex] = signedTxB.__inputs[signInputIndex]
-      })
-  }
-
-  signTransactionSkeleton(tx, signInputIndex, multisig) {
-    return this.prepareTransactionInfo(tx, signInputIndex, multisig)
-      .then((txInfo) => {
-        const coin = getCoinName()
-        return TrezorConnect.signTransaction({ inputs: txInfo.inputs,
-                                               outputs: txInfo.outputs,
-                                               coin })
-          .then(resp => {
-            if (!resp.success){
-              console.log(JSON.stringify(resp, undefined, 2))
-              throw new Error('Failed to sign Trezor transaction!')
-            }
-            return { tx: resp.payload.serializedTx }
-          })
       })
   }
 
