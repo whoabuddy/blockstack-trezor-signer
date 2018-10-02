@@ -94,3 +94,11 @@ export function pathToPathArray (path) {
       }
     })
 }
+
+export function configureTestnet(blockstackTestnet = 'testnet.blockstack.org') {
+  bsk.config.network = bsk.network.defaults.LOCAL_REGTEST
+  bsk.config.network.blockstackAPIUrl    = `http://${blockstackTestnet}:16268`
+  bsk.config.network.broadcastServiceUrl = `http://${blockstackTestnet}:16269`
+  bsk.config.network.btc = new bsk.network.InsightClient('https://testnet-bitcore1.trezor.io/api')
+  bsk.config.network.getFeeRate = () => Promise.resolve(1)
+}
