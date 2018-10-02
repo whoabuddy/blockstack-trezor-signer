@@ -8,7 +8,20 @@
     "start": "node lib/index.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "author": "Aaron Blankstein <aaron@blockstack.com>",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/blockstack/blockstack-trezor-signer.git"
+  },
+  "author": {
+    "name": "Blockstack PBC",
+    "email": "admin@blockstack.com",
+    "url": "https://blockstack.org"
+  },
+  "contributors": [
+    {
+      "name": "Aaron Blankstein"
+    }
+  ],
   "license": "MIT",
   "dependencies": {
     "babel-polyfill": "^6.26.0",
