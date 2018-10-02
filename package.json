@@ -1,15 +1,14 @@
 {
   "name": "blockstack-trezor",
-  "version": "1.0.0",
+  "version": "0.9.0",
   "description": "Simple utility for Blockstack trezor transactions",
-  "main": "index.js",
   "scripts": {
     "build": "rm -rf lib; babel src -d lib && npm run browserify",
     "browserify": "browserify lib/index.js --standalone bsk-trezor -o lib/distribute.js",
     "start": "node lib/index.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "author": "Aaron Blankstein <aaron@blankstein.com>",
+  "author": "Aaron Blankstein <aaron@blockstack.com>",
   "license": "MIT",
   "dependencies": {
     "babel-polyfill": "^6.26.0",
@@ -26,6 +25,6 @@
     "browserify": "^16.2.2"
   },
   "engines": {
-    "node": ">=9"
+    "node": ">=8"
   }
 }
