@@ -8,7 +8,7 @@ This provides both single-sig and multi-sig signers.
 To use:
 
 ```javascript
-import { TrezorSigner } from 'blockstack-trezor.js'
+import { TrezorSigner } from 'blockstack-trezor'
 import bsk from 'blockstack'
 
 const signer = TrezorSigner.create(`m/44'/88'/0'/0/1`)
