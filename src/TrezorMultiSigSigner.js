@@ -1,82 +1,75 @@
+import TrezorConnect from 'trezor-connect'
 import btc from 'bitcoinjs-lib'
+import crypto from 'crypto'
 
 const bsk = require('blockstack')
 
 import { TrezorSigner } from './TrezorSigner'
-import { getTransaction, pathToPathArray, getCoinName } from './utils'
+import { pathToPathArray, getCoinName } from './utils'
 
 export class TrezorMultiSigner extends TrezorSigner {
 
-  constructor(device, hdpath, address, pubkeys, m, signatures, redeemScript) {
-    super(device, hdpath, address)
-    this.multisig = { pubkeys, m, signatures }
-    this.redeemScript = redeemScript
+  constructor(hdpath, redeemScript: string, address: string) {
+    super(hdpath, address)
+    const redeemScriptBuffer = Buffer.from(redeemScript, 'hex')
+    this.p2ms = btc.payments.p2ms({ output: redeemScriptBuffer })
   }
 
-  static getHDNode(device, hdpath) {
-    return device.waitForSessionAndRun((session) => {
-      let hdPathArray = pathToPathArray(hdpath)
-      return session.getHDNode(hdPathArray, getCoinName())
-    })
+  static createSigner(path, redeemScript) {
+    const address = btc.payments
+          .p2ms({ output: Buffer.from(redeemScript, 'hex') })
+          .address
+    return Promise.resolve().then(() => new TrezorMultiSigner(
+      path, redeemScript, address))
   }
 
-  static createSigner(device, myPath, hdpaths, m, signatures) {
-    return Promise.all(
-      hdpaths.map(x => TrezorMultiSigner.getHDNode(device, x)))
-      .then(hdNodes => {
-        const pubkeys = hdNodes.map(x => ({
-          node: {
-            depth: x.depth,
-            fingerprint: x.getFingerprint().readUInt32LE(0),
-            child_num: x.index,
-            chain_code: x.chainCode,
-            public_key: x.getPublicKeyBuffer()
-          },
-          address_n: [] }))
-        const { address, redeemScript } = TrezorMultiSigner.computeMultiSigAddress(hdNodes, m)
-        if (!signatures) {
-          signatures = hdNodes.map(() => '')
-        }
-        return new TrezorMultiSigner(device, myPath, address, pubkeys, m, signatures, redeemScript)
-      })
-  }
-
-  static computeMultiSigAddress(hdNodes, m) {
-    const pubkeys = hdNodes.map(x => x.getPublicKeyBuffer())
-    const redeem = btc.payments.p2ms({ m, pubkeys })
-    const script = btc.payments.p2sh({ redeem })
-    const address = script.address
-    const addressHash = btc.address.fromBase58Check(address).hash
-    const version = bsk.config.network.layer1.scriptHash
-    return { address: btc.address.toBase58Check(addressHash, version),
-             redeemScript: redeem.output.toString('hex') }
-  }
-
-
-  prepareInputs(inputs, myIndex) {
+  prepareInputs(inputs, myIndex, multisig) {
     return inputs
       .map((input, inputIndex) => {
         const translated = TrezorSigner.translateInput(input)
         if (inputIndex === myIndex) {
           translated.address_n = pathToPathArray(this.hdpath)
-          translated.multisig = this.multisig
+          translated.multisig = multisig
           translated.script_type = 'SPENDMULTISIG'
         }
         return translated
       })
   }
 
-  signTransactionSkeleton(tx, signInputIndex) {
-    return this.prepareTransactionInfo(tx, signInputIndex)
-      .then((txInfo) => {
-        const coinName = getCoinName()
-        return this.device.waitForSessionAndRun(
-          (session) =>
-            session.signTx(txInfo.inputs, txInfo.outputs, txInfo.referrants, coinName))
-          .then(resp => {
-            return { tx: resp.message.serialized.serialized_tx,
-                     signatures: resp.message.serialized.signatures }
-          })
+  signTransaction(txB, signInputIndex) {
+    let signatures = []
+    const txBSigs = txB.__inputs[signInputIndex].signatures
+    if (txBSigs) {
+      signatures = txBSigs.map(signature => {
+        if (signature) {
+          return signature.toString('hex').slice(0, -2)
+        } else {
+          return ''
+        }
+      })
+    } else {
+      signatures = this.p2ms.pubkeys.map(() => '')
+    }
+
+    const pubkeys = this.p2ms.pubkeys.map( // make fake xpubs?
+      (pubkey) => {
+        const chainCode = crypto.randomBytes(32)
+        const hdNode = btc.bip32.fromPublicKey(pubkey, chainCode)
+        hdNode.network = bsk.config.network.layer1
+        return { node: hdNode.toBase58() }
+      })
+
+    const multisig = { pubkeys,
+                       m: this.p2ms.m,
+                       signatures }
+
+    return this.signTransactionSkeleton(txB.__tx, signInputIndex, multisig)
+      .then((resp) => {
+        const signedTxHex = resp.tx
+        // god of abstraction, forgive me, for I have transgressed
+        const signedTx = btc.Transaction.fromHex(signedTxHex)
+        const signedTxB = btc.TransactionBuilder.fromTransaction(signedTx)
+        txB.__inputs[signInputIndex] = signedTxB.__inputs[signInputIndex]
       })
   }
 

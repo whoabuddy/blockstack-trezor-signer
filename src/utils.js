@@ -1,5 +1,5 @@
 import btc from 'bitcoinjs-lib'
-import 'cross-fetch/polyfill'
+import fetch from 'cross-fetch'
 const bsk = require('blockstack')
 
 const KNOWN_TX_MAP = {}
