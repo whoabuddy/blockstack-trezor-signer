@@ -7,7 +7,7 @@ const bsk = require('blockstack')
 import { TrezorSigner } from './TrezorSigner'
 import { pathToPathArray, getCoinName } from './utils'
 
-export class TrezorMultiSigner extends TrezorSigner {
+export class TrezorMultiSigSigner extends TrezorSigner {
 
   constructor(hdpath, redeemScript: string, address: string) {
     super(hdpath, address)
