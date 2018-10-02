@@ -64,24 +64,8 @@ export function getCoinName() {
 
 export function pathToPathArray (path) {
   const harden = 0x80000000
-  let pieces = path.split('/')
-  if (pieces.length === 1) {
-    let inferred
-    if (path.startsWith('0x')) {
-      console.log(`Trying to look up address: ${path}`)
-      const addr = path.toLowerCase()
-      if (addr in ADDRESS_MAP) {
-        inferred = ADDRESS_MAP[addr]
-      } else {
-        throw new Error(`Could not find ${path} in dictionary. Have you called "loadaddrs"?`)
-      }
-    } else {
-      inferred = `m/44'/60'/0'/0/${path}`
-    }
-    console.log(`Using derivation path: ${inferred}`)
-    pieces = inferred.split('/')
-  }
-  if (pieces[0] !== 'm') {
+  const pieces = path.split('/')
+  if (pieces.length === 1 || pieces[0] !== 'm') {
     throw new Error(`Invalid path ${path}`)
   }
   return pieces

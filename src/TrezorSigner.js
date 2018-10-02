@@ -3,18 +3,7 @@ import TrezorConnect from 'trezor-connect'
 
 const bsk = require('blockstack')
 
-import { getTransaction, pathToPathArray, getCoinName } from './utils'
-
-class MockKeyPair {
-  constructor(signature: Buffer, publicKey: Buffer) {
-    this.signature = signature
-    this.publicKey = publicKey
-  }
-
-  sign() {
-    return this.signature
-  }
-}
+import { pathToPathArray, getCoinName } from './utils'
 
 export class TrezorSigner {
 
@@ -30,12 +19,12 @@ export class TrezorSigner {
 
 
   static translateInput(input) {
-    const script_sig = input.script.length > 0 ? input.script.toString('hex') : null
+    const scriptSig = input.script.length > 0 ? input.script.toString('hex') : null
     return {
-      prev_index: input.index,
-      prev_hash: Buffer.from(input.hash).reverse().toString('hex'),
+      'prev_index': input.index,
+      'prev_hash': Buffer.from(input.hash).reverse().toString('hex'),
       sequence: input.sequence,
-      script_sig
+      'script_sig': scriptSig
     }
   }
 
@@ -66,12 +55,12 @@ export class TrezorSigner {
     return Promise.resolve(this.address)
   }
 
-  prepareInputs(inputs, myIndex, extra) {
+  prepareInputs(inputs, myIndex) {
     return inputs
       .map((input, inputIndex) => {
         const translated = TrezorSigner.translateInput(input)
         if (inputIndex === myIndex) {
-          translated.address_n = pathToPathArray(this.hdpath)
+          translated['address_n'] = pathToPathArray(this.hdpath)
         }
         return translated
       })
@@ -82,15 +71,15 @@ export class TrezorSigner {
       .map( output => {
         if (btc.script.toASM(output.script).startsWith('OP_RETURN')) {
           const nullData = btc.script.decompile(output.script)[1]
-          return { op_return_data: nullData.toString('hex'),
+          return { 'op_return_data': nullData.toString('hex'),
                    amount: '0',
-                   script_type: 'PAYTOOPRETURN' }
+                   'script_type': 'PAYTOOPRETURN' }
         } else {
           const address = bsk.config.network.coerceAddress(
             btc.address.fromOutputScript(output.script))
           return { address,
                    amount: `${output.value}`,
-                   script_type: 'PAYTOADDRESS' }
+                   'script_type': 'PAYTOADDRESS' }
         }
       })
   }

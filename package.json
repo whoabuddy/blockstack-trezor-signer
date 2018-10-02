@@ -1,12 +1,12 @@
 {
   "name": "blockstack-trezor",
-  "version": "0.9.2",
+  "version": "0.9.3",
   "description": "Simple utility for Blockstack trezor transactions",
   "scripts": {
     "build": "rm -rf lib; babel src -d lib",
     "browserify": "browserify lib/index.js --standalone bsk-trezor -o dist/blockstack-trezor.js",
     "start": "node lib/index.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "eslint src/"
   },
   "repository": {
     "type": "git",
@@ -32,9 +32,12 @@
   },
   "devDependencies": {
     "babel-cli": "^6.26.0",
+    "babel-eslint": "^10.0.1",
     "babel-preset-env": "^1.7.0",
     "babel-preset-flow": "^6.23.0",
-    "browserify": "^16.2.2"
+    "browserify": "^16.2.2",
+    "eslint": "^5.6.1",
+    "eslint-plugin-flowtype": "^2.50.3"
   },
   "engines": {
     "node": ">=8"

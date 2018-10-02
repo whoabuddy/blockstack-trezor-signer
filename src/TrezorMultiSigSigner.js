@@ -1,11 +1,10 @@
-import TrezorConnect from 'trezor-connect'
 import btc from 'bitcoinjs-lib'
 import crypto from 'crypto'
 
 const bsk = require('blockstack')
 
 import { TrezorSigner } from './TrezorSigner'
-import { pathToPathArray, getCoinName } from './utils'
+import { pathToPathArray } from './utils'
 
 export class TrezorMultiSigSigner extends TrezorSigner {
 
@@ -19,7 +18,7 @@ export class TrezorMultiSigSigner extends TrezorSigner {
     const address = btc.payments
           .p2ms({ output: Buffer.from(redeemScript, 'hex') })
           .address
-    return Promise.resolve().then(() => new TrezorMultiSigner(
+    return Promise.resolve().then(() => new TrezorMultiSigSigner(
       path, redeemScript, address))
   }
 
@@ -28,9 +27,9 @@ export class TrezorMultiSigSigner extends TrezorSigner {
       .map((input, inputIndex) => {
         const translated = TrezorSigner.translateInput(input)
         if (inputIndex === myIndex) {
-          translated.address_n = pathToPathArray(this.hdpath)
-          translated.multisig = multisig
-          translated.script_type = 'SPENDMULTISIG'
+          translated['address_n'] = pathToPathArray(this.hdpath)
+          translated['multisig'] = multisig
+          translated['script_type'] = 'SPENDMULTISIG'
         }
         return translated
       })
