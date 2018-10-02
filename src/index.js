@@ -1,5 +1,6 @@
 import btc from 'bitcoinjs-lib'
 import { TrezorMultiSigner } from './TrezorMultiSigSigner'
+import fetch from 'cross-fetch'
 import BigInteger from 'bigi'
 
 const bsk = require('blockstack')

@@ -5,7 +5,7 @@ import crypto from 'crypto'
 const bsk = require('blockstack')
 
 import { TrezorSigner } from './TrezorSigner'
-import { getTransaction, pathToPathArray, getCoinName } from './utils'
+import { pathToPathArray, getCoinName } from './utils'
 
 export class TrezorMultiSigner extends TrezorSigner {
 
@@ -13,16 +13,6 @@ export class TrezorMultiSigner extends TrezorSigner {
     super(hdpath, address)
     const redeemScriptBuffer = Buffer.from(redeemScript, 'hex')
     this.p2ms = btc.payments.p2ms({ output: redeemScriptBuffer })
-  }
-
-  static getMultiSigInfo(txB: TransactionBuilder) {
-  }
-
-  static getHDNode(device, hdpath) {
-    return device.waitForSessionAndRun((session) => {
-      let hdPathArray = pathToPathArray(hdpath)
-      return session.getHDNode(hdPathArray, getCoinName())
-    })
   }
 
   static createSigner(path, redeemScript) {
