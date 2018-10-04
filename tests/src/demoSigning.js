@@ -46,7 +46,7 @@ function setTestnet() {
   bsk.config.network = bsk.network.defaults.LOCAL_REGTEST
   bsk.config.network.blockstackAPIUrl    = `http://${TESTNET}:16268`
   bsk.config.network.broadcastServiceUrl = `http://${TESTNET}:16269`
-  bsk.config.network.btc = new bsk.network.InsightClient('https://testnet-bitcore1.trezor.io/api')
+  bsk.config.network.btc = new bsk.network.InsightClient('https://test-insight.bitpay.com/api/')
   bsk.config.network.getFeeRate = () => Promise.resolve(1)
 }
 

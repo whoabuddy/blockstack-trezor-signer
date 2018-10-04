@@ -1,7 +1,7 @@
 import btc from 'bitcoinjs-lib'
 import crypto from 'crypto'
 
-const bsk = require('blockstack')
+import { config as bskConfig } from 'blockstack'
 
 import { TrezorSigner } from './TrezorSigner'
 import { pathToPathArray } from './utils'
@@ -15,9 +15,13 @@ export class TrezorMultiSigSigner extends TrezorSigner {
   }
 
   static createSigner(path, redeemScript) {
-    const address = btc.payments
+    const p2ms = btc.payments
           .p2ms({ output: Buffer.from(redeemScript, 'hex') })
-          .address
+    const script = btc.payments.p2sh({ redeem: p2ms })
+
+    const address = bskConfig.network.coerceAddress(script.address)
+    console.log(`SCRIPT ADDR: ${script.address}, ADDR: ${address}`)
+
     return Promise.resolve().then(() => new TrezorMultiSigSigner(
       path, redeemScript, address))
   }
@@ -54,7 +58,7 @@ export class TrezorMultiSigSigner extends TrezorSigner {
       (pubkey) => {
         const chainCode = crypto.randomBytes(32)
         const hdNode = btc.bip32.fromPublicKey(pubkey, chainCode)
-        hdNode.network = bsk.config.network.layer1
+        hdNode.network = bskConfig.network.layer1
         return { node: hdNode.toBase58() }
       })
 

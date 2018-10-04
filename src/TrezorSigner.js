@@ -1,7 +1,7 @@
 import btc from 'bitcoinjs-lib'
 import TrezorConnect from 'trezor-connect'
 
-const bsk = require('blockstack')
+import { config as bskConfig } from 'blockstack'
 
 import { pathToPathArray, getCoinName } from './utils'
 
@@ -47,7 +47,7 @@ export class TrezorSigner {
       .then((xpubs) => {
         const node = btc.bip32.fromBase58(xpubs[0])
         const address = btc.payments.p2pkh({ pubkey: node.publicKey }).address
-        return bsk.config.network.coerceAddress(address)
+        return bskConfig.network.coerceAddress(address)
       })
   }
 
@@ -75,7 +75,7 @@ export class TrezorSigner {
                    amount: '0',
                    'script_type': 'PAYTOOPRETURN' }
         } else {
-          const address = bsk.config.network.coerceAddress(
+          const address = bskConfig.network.coerceAddress(
             btc.address.fromOutputScript(output.script))
           return { address,
                    amount: `${output.value}`,
