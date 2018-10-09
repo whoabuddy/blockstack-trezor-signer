@@ -1,55 +1,15 @@
 import btc from 'bitcoinjs-lib'
-import fetch from 'cross-fetch'
 const bsk = require('blockstack')
 
-const KNOWN_TX_MAP = {}
 
-export function getTransaction (txId) {
-  if (txId in KNOWN_TX_MAP) {
-    return Promise.resolve(Buffer.from(
-      KNOWN_TX_MAP[txId], 'hex'))
+export function getMultiSigInfo(publicKeys, signersRequired) {
+  const redeem = btc.payments.p2ms({ m: signersRequired, pubkeys: publicKeys })
+  const script = btc.payments.p2sh({ redeem })
+  const address = script.address
+  return {
+    address: bsk.config.network.coerceAddress(address),
+    redeemScript: redeem.output.toString('hex')
   }
-  if (getCoinName() === 'testnet') {
-    return getTransactionBitcoind(txId)
-  }
-
-  const apiUrl = `https://blockchain.info/rawtx/${txId}?format=hex`
-  return fetch(apiUrl)
-    .then(x => {
-      if (!x.ok) {
-        throw new Error('failed to get raw TX')
-      }
-      return x.text()
-    })
-    .then(x => Buffer.from(x, 'hex'))
-}
-
-function getTransactionBitcoind (txId) {
-  const bitcoindUrl = bsk.config.network.btc.bitcoindUrl
-  const bitcoindCredentials = bsk.config.network.btc.bitcoindCredentials
-
-  const jsonRPC = {
-    jsonrpc: '1.0',
-    method: 'getrawtransaction',
-    params: [txId]
-  }
-
-  const authString = Buffer.from(`${bitcoindCredentials.username}:${bitcoindCredentials.password}`)
-      .toString('base64')
-  const headers = { Authorization: `Basic ${authString}` }
-  return fetch(bitcoindUrl, {
-    method: 'POST',
-    body: JSON.stringify(jsonRPC),
-    headers
-  })
-    .then(resp => resp.json())
-    .then(json => Buffer.from(json.result, 'hex'))
-}
-
-export function trackTransaction(rawTX) {
-  bsk.config.network.modifyUTXOSetFrom(rawTX)
-  const txid = btc.Transaction.fromHex(rawTX).getId()
-  KNOWN_TX_MAP[txid] = rawTX
 }
 
 export function getCoinName() {

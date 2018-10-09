@@ -32,8 +32,13 @@ export class TrezorSigner {
     return TrezorConnect.getPublicKey({
       bundle: paths.map((path) => ({ path })) })
       .then((response) => {
-        if (!response.success)
-          throw new Error('Failed to load addresses from Trezor')
+        if (!response.success) {
+          if (response.payload && response.payload.error) {
+            throw new Error(`Failed to load addresses from Trezor: ${response.payload.error}`)
+          } else {
+            throw new Error('Failed to load addresses from Trezor')
+          }
+        }
         const values = response.payload
         return paths.map((path) => {
           return values.find((value) => `m/${value.serializedPath}` === path)
@@ -115,8 +120,13 @@ export class TrezorSigner {
                                                outputs: txInfo.outputs,
                                                coin })
           .then(resp => {
-            if (!resp.success)
-              throw new Error('Failed to sign Trezor transaction!')
+            if (!resp.success) {
+              if (resp.payload && resp.payload.error) {
+                throw new Error(`Failed to sign Trezor transaction: ${resp.payload.error}`)
+              } else {
+                throw new Error('Failed to sign Trezor transaction.')
+              }
+            }
             return { tx: resp.payload.serializedTx, signatures: resp.payload.signatures }
           })
       })

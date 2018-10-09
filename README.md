@@ -18,6 +18,53 @@ bsk.makeTokenTransfer(recipientAddress, 'STACKS', BigInteger.fromHex('10'), '', 
 
 *Note:* Because this uses `connect.js`, this is only usable in browser-y contexts.
 
+## Dependencies
+
+Multi-sig support depends on the current `develop` branch of `blockstack.js`.
+
+## Testing
+
+This repo includes a karma-based testing system, which tests the generation/signing of
+Blockstack `UPDATE` transactions.
+
+To run these, you need to:
+
+1. Install the Trezor emulator from [here](https://github.com/trezor/trezor-core/blob/master/docs/emulator.md)
+2. Start the emulator and `trezord` with an emulator connection
+
+```bash
+# if you already have trezord running
+$ sudo service trezord stop
+# start emulator
+$ ./emu.sh
+# restart trezord with emulator connection
+$ trezord -e 21324
+```
+
+3. Restore the emulator wallet with the following 12-word phrase:
+
+```
+wink around rely cluster level off monitor ugly oak enrich plate street
+```
+
+4. Run the karma tests:
+
+```bash
+$ npm run karma
+```
+
+5. You will be prompted throughout the tests to click through
+   trezor-connect dialogs and confirm actions on the emulator. Do that.
+
+See bitcoin transactions:
+
+```
+099b1dfc916ec5b435a8b8e50462984f359248fe30b9f276b8937e0a1eba37e2
+
+6d9dad793ed967e6cd1821b86bc7aafad75b8b30b282f7b5255a7a71fb862150
+```
+
+For the bitcoin transactions which should be created.
 
 ### Testnet Usage
 
@@ -40,3 +87,5 @@ configureTestnet()
 // now your blockstack.js network configuration object will
 //  be configured to use trezor's bitcore service.
 ```
+
+
