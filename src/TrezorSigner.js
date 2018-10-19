@@ -28,7 +28,7 @@ export class TrezorSigner {
     }
   }
 
-  static getPublicKeys(paths) {
+  static getPublicKeys(paths): Promise<[string]> {
     return TrezorConnect.getPublicKey({
       bundle: paths.map((path) => ({ path })) })
       .then((response) => {
@@ -41,17 +41,18 @@ export class TrezorSigner {
         }
         const values = response.payload
         return paths.map((path) => {
-          return values.find((value) => `m/${value.serializedPath}` === path)
-            .xpub
+          const xpub = values.find((value) => `m/${value.serializedPath}` === path)
+                .xpub
+          const pk = btc.bip32.fromBase58(xpub).publicKey
+          return pk.toString('hex')
         })
       })
   }
 
   static getAddressFrom(hdpath) {
     return TrezorSigner.getPublicKeys([hdpath])
-      .then((xpubs) => {
-        const node = btc.bip32.fromBase58(xpubs[0])
-        const address = btc.payments.p2pkh({ pubkey: node.publicKey }).address
+      .then((pks) => {
+        const address = btc.payments.p2pkh({ pubkey: Buffer.from(pks[0], 'hex') }).address
         return bskConfig.network.coerceAddress(address)
       })
   }

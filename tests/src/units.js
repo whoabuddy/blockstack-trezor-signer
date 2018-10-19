@@ -3,8 +3,6 @@ import FetchMock from 'fetch-mock'
 import btc from 'bitcoinjs-lib'
 import { NullSigner, TrezorSigner,
          TrezorMultiSigSigner, getMultiSigInfo } from '../../lib'
-import fetch from 'cross-fetch'
-import BigInteger from 'bigi'
 
 jasmine.DEFAULT_TIMEOUT_INTERVAL = 5000000
 const FUNDER_KEY_0 = 'cf0a48131c07cbef652f929af118bb9adbf58e76843f268ac5feeaac7e45b79401'
@@ -85,7 +83,7 @@ function setupMocks() {
                script: 'a914963b2cb4c61afe596fa435031d5b1dbaf4b54da887',
                value: 25000,
                value_hex: '61a8',
-               confirmations: 0 } ] } }
+               confirmations: 0 } ] }},
   ]
 
   mocks.forEach(mock => FetchMock.get(mock.k, mock.v))
@@ -134,10 +132,10 @@ describe('multi-sig-test-1', function () {
     const ownerPubKeyPaths = [1, 2, 3].map(i => `m/44'/5757'/0'/0/${i}`)
 
     return TrezorSigner.getPublicKeys(ownerPubKeyPaths)
-      .then((xpubs) => {
-        const ownerPubKeys = xpubs.map(xpub => btc.bip32.fromBase58(xpub).publicKey)
+      .then((pubkeys) => {
+        const ownerPubKeys = pubkeys.map(pkHex => pkHex)
         const extraPubKeyHex = bsk.getPublicKeyFromPrivate(MULTISIG_PARTICIPANT.slice(0, -2))
-        ownerPubKeys.push(Buffer.from(extraPubKeyHex, 'hex'))
+        ownerPubKeys.push(extraPubKeyHex)
         return getMultiSigInfo(ownerPubKeys, 2)
       })
       .then((ownerMultiSigInfo) => {
@@ -198,10 +196,10 @@ describe('multi-sig-test-2', function () {
     const ownerPubKeyPaths = [1, 2, 3].map(i => `m/44'/5757'/0'/0/${i}`)
 
     return TrezorSigner.getPublicKeys(ownerPubKeyPaths)
-      .then((xpubs) => {
-        const ownerPubKeys = xpubs.map(xpub => btc.bip32.fromBase58(xpub).publicKey)
+      .then((pubkeys) => {
+        const ownerPubKeys = pubkeys.map(pkHex => pkHex)
         const extraPubKeyHex = bsk.getPublicKeyFromPrivate(MULTISIG_PARTICIPANT.slice(0, -2))
-        ownerPubKeys.push(Buffer.from(extraPubKeyHex, 'hex'))
+        ownerPubKeys.push(extraPubKeyHex)
         return getMultiSigInfo(ownerPubKeys, 2)
       })
       .then((ownerMultiSigInfo) => {

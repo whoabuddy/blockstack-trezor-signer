@@ -2,8 +2,8 @@ import btc from 'bitcoinjs-lib'
 const bsk = require('blockstack')
 
 
-export function getMultiSigInfo(publicKeys, signersRequired) {
-  const redeem = btc.payments.p2ms({ m: signersRequired, pubkeys: publicKeys })
+export function getMultiSigInfo(publicKeys: [string], signersRequired: number) {
+  const redeem = btc.payments.p2ms({ m: signersRequired, pubkeys: publicKeys.map(pk => Buffer.from(pk, 'hex')) })
   const script = btc.payments.p2sh({ redeem })
   const address = script.address
   return {
