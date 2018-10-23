@@ -88,4 +88,16 @@ configureTestnet()
 //  be configured to use trezor's bitcore service.
 ```
 
+*Just use mainnet BTC*: Since using BTC testnet is often a pain, it
+can be easier to just use BTC mainnet, but point your _Blockstack_ API
+at testnet. This will create real BTC spends, but they'll be invalid
+Blockstack transactions. BE SURE NOT TO USE ADDRESSES WITH REAL STACKS BALANCES ---
+OR NAMES as consensus hashes will invalidate some, but not all transactions.
+
+To do that, just modify your `blockstack.js` configuration object:
+
+```
+  bsk.config.network = bsk.network.defaults.MAINNET_DEFAULT
+  bsk.config.network.blockstackAPIUrl    = `http://${blockstackTestnet}:16268`
+```
 
