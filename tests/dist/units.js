@@ -110,7 +110,8 @@ var TrezorMultiSigSigner = exports.TrezorMultiSigSigner = function (_TrezorSigne
         });
       }
 
-      var pubkeys = this.p2ms.pubkeys.map( // make fake xpubs?
+      var pubkeys = this.p2ms.pubkeys.map(
+      // make fake xpubs?
       function (pubkey) {
         var chainCode = _crypto2.default.randomBytes(32);
         var hdNode = _bitcoinjsLib2.default.bip32.fromPublicKey(pubkey, chainCode);
@@ -118,9 +119,7 @@ var TrezorMultiSigSigner = exports.TrezorMultiSigSigner = function (_TrezorSigne
         return { node: hdNode.toBase58() };
       });
 
-      var multisig = { pubkeys: pubkeys,
-        m: this.p2ms.m,
-        signatures: signatures };
+      var multisig = { pubkeys: pubkeys, m: this.p2ms.m, signatures: signatures };
 
       return this.signTransactionSkeleton(txB.__tx, signInputIndex, multisig).then(function (resp) {
         var signedTxHex = resp.tx;
@@ -138,7 +137,9 @@ var TrezorMultiSigSigner = exports.TrezorMultiSigSigner = function (_TrezorSigne
   }], [{
     key: 'createSigner',
     value: function createSigner(path, redeemScript) {
-      var p2ms = _bitcoinjsLib2.default.payments.p2ms({ output: Buffer.from(redeemScript, 'hex') });
+      var p2ms = _bitcoinjsLib2.default.payments.p2ms({
+        output: Buffer.from(redeemScript, 'hex')
+      });
       var script = _bitcoinjsLib2.default.payments.p2sh({ redeem: p2ms });
 
       var address = _blockstack.config.network.coerceAddress(script.address);
@@ -180,6 +181,18 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
+/* from readme for local dev:
+TrezorConnect.init({
+  connectSrc: 'https://localhost:9876/',
+  lazyLoad: true, // this param will prevent iframe injection until TrezorConnect.method will be called
+  manifest: {
+    email: 'admin@blockstack.com',
+    appUrl: 'https://blockstack.org',
+  },
+})
+*/
+
+// manifest below is bare minimum v7+
 _trezorConnect2.default.manifest({
   email: 'admin@blockstack.com',
   appUrl: 'https://blockstack.org'

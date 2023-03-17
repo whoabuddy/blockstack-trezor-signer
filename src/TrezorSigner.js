@@ -5,6 +5,18 @@ import { config as bskConfig } from 'blockstack'
 
 import { pathToPathArray, getCoinName } from './utils'
 
+/* from readme for local dev:
+TrezorConnect.init({
+  connectSrc: 'https://localhost:9876/',
+  lazyLoad: true, // this param will prevent iframe injection until TrezorConnect.method will be called
+  manifest: {
+    email: 'admin@blockstack.com',
+    appUrl: 'https://blockstack.org',
+  },
+})
+*/
+
+// manifest below is bare minimum v7+
 TrezorConnect.manifest({
   email: 'admin@blockstack.com',
   appUrl: 'https://blockstack.org',
