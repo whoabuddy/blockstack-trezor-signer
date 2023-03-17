@@ -1,9 +1,17 @@
 import btc from 'bitcoinjs-lib'
-import TrezorConnect from 'trezor-connect'
+import TrezorConnect from '@trezor/connect-web'
 
 import { config as bskConfig } from 'blockstack'
 
 import { pathToPathArray, getCoinName } from './utils'
+
+TrezorConnect.init({
+    lazyLoad: true, // this param will prevent iframe injection until TrezorConnect.method will be called
+    manifest: {
+        email: 'aaron@hiro.so',
+        appUrl: 'https://github.com/stacks-network/blockstack-trezor-signer',
+    },
+});
 
 export class TrezorSigner {
 
@@ -19,7 +27,7 @@ export class TrezorSigner {
 
 
   static translateInput(input) {
-    const scriptSig = input.script.length > 0 ? input.script.toString('hex') : null
+    const scriptSig = input.script.length > 0 ? input.script.toString('hex') : undefined
     return {
       'prev_index': input.index,
       'prev_hash': Buffer.from(input.hash).reverse().toString('hex'),

@@ -1,6 +1,6 @@
 {
   "name": "blockstack-trezor",
-  "version": "0.9.8",
+  "version": "0.10.0",
   "description": "Simple utility for Blockstack trezor transactions",
   "main": "lib/index",
   "scripts": {
@@ -29,12 +29,11 @@
   ],
   "license": "MIT",
   "dependencies": {
+    "@trezor/connect-web": "^9.0.0",
     "babel-polyfill": "^6.26.0",
     "bigi": "^1.4.2",
     "bitcoinjs-lib": "^4.0.2",
-    "blockstack": "^18.0.2",
-    "cross-fetch": "^2.2.2",
-    "trezor-connect": "^5.0.34"
+    "blockstack": "^18.1.5"
   },
   "devDependencies": {
     "babel-cli": "^6.26.0",
