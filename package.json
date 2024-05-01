@@ -5,7 +5,7 @@
   "main": "lib/index",
   "scripts": {
     "prepublishOnly": "npm run test && npm run build",
-    "build": "rm -rf lib; babel src -d lib",
+    "build": "rm -rf lib && ./node_modules/.bin/babel src -d lib",
     "browserify": "browserify lib/index.js --standalone bsk-trezor -o dist/blockstack-trezor.js",
     "build-tests": "rm -rf tests/lib; babel tests/src -d tests/lib && browserify tests/lib/units.js -o tests/dist/units.js",
     "karma": "npm run build && npm run build-tests && karma start --single-run",
