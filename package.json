@@ -16,7 +16,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/blockstack/blockstack-trezor-signer.git"
+    "url": "git+https://github.com/whoabuddy/blockstack-trezor-signer.git"
   },
   "author": {
     "name": "Blockstack PBC",
