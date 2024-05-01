@@ -32,7 +32,7 @@
     "@trezor/connect-web": "~9.0.0",
     "babel-polyfill": "^6.26.0",
     "bigi": "^1.4.2",
-    "bitcoinjs-lib": "^4.0.2",
+    "bitcoinjs-lib": "^5.0.0",
     "blockstack": "^18.1.5"
   },
   "devDependencies": {
