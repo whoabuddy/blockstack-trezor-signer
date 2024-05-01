@@ -11,7 +11,8 @@
     "karma": "npm run build && npm run build-tests && karma start --single-run",
     "flow": "flow",
     "lint": "eslint src/",
-    "test": "npm run lint && npm run flow"
+    "test": "npm run lint && npm run flow",
+    "postinstall": "npm run build"
   },
   "repository": {
     "type": "git",
